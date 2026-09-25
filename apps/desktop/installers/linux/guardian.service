@@ -1,0 +1,16 @@
+[Unit]
+Description=Guardián - servicio de bloqueo de apps y sitios
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+ExecStart=/usr/bin/node /opt/guardian/service/main.js
+Restart=always
+RestartSec=5
+# Endurecimiento: sólo necesita escribir /etc/hosts y su carpeta de datos.
+ProtectHome=read-only
+ReadWritePaths=/etc/hosts /var/lib/guardian
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

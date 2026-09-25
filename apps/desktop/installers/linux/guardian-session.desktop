@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Guardián
+Comment=Pantalla de bloqueo y avisos de Guardián
+Exec=/opt/guardian/Guardian
+X-GNOME-Autostart-enabled=true
+NoDisplay=true

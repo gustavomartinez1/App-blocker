@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'" />
+  <link rel="stylesheet" href="style.css" />
+  <title>Bloqueado</title>
+</head>
+<body>
+  <div class="card">
+    <div class="big">🛡️</div>
+    <h1 id="title">Bloqueado</h1>
+    <p id="message"></p>
+    <div id="until" class="until"></div>
+    <div class="row" id="actions">
+      <button class="primary" id="btn-request">Pedir desbloqueo</button>
+      <button id="btn-code">Tengo un código</button>
+    </div>
+
+    <div class="panel" id="panel-request">
+      <label>¿Cuánto tiempo?
+        <select id="minutes"><option>15</option><option selected>30</option><option>60</option><option>120</option></select>
+      </label>
+      <label>¿Para qué? (opcional)
+        <textarea id="reason" rows="2" maxlength="300" placeholder="Tengo que terminar la tarea…"></textarea>
+      </label>
+      <div class="row"><button class="primary" id="send">Enviar solicitud</button></div>
+    </div>
+
+    <div class="panel" id="panel-code">
+      <label>Código de 6 dígitos que te dio el administrador
+        <input id="code" class="code" inputmode="numeric" maxlength="7" autocomplete="off" />
+      </label>
+      <div class="row"><button class="primary" id="check">Desbloquear</button></div>
+    </div>
+    <div id="result" class="msg"></div>
+  </div>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    let state = JSON.parse(new URLSearchParams(location.search).get('data') || '{}');
+    let timer;
+
+    function render() {
+      const d = state.decision || {};
+      $('title').textContent = d.mode === 'lock' ? 'El administrador bloqueó la computadora' : `${state.label ? state.label[0].toUpperCase() + state.label.slice(1) : 'Esto'} está bloqueado`;
+      $('message').textContent = d.message || '';
+      $('actions').style.display = d.strict ? 'none' : '';
+      clearInterval(timer);
+      const tick = () => {
+        if (!d.until) return ($('until').textContent = '');
+        const ms = new Date(d.until).getTime() - Date.now();
+        if (ms <= 0) return ($('until').textContent = '');
+        const h = Math.floor(ms / 3.6e6), m = Math.floor((ms % 3.6e6) / 6e4), s = Math.floor((ms % 6e4) / 1e3);
+        $('until').textContent = `${h ? h + ':' : ''}${String(m).padStart(h ? 2 : 1, '0')}:${String(s).padStart(2, '0')}`;
+      };
+      tick();
+      timer = setInterval(tick, 1000);
+    }
+
+    function show(panel) {
+      for (const p of ['panel-request', 'panel-code']) $(p).classList.toggle('on', p === panel);
+      $('result').textContent = '';
+    }
+    function result(text, ok) {
+      $('result').textContent = text;
+      $('result').className = 'msg ' + (ok ? 'ok' : 'err');
+    }
+
+    $('btn-request').onclick = () => show('panel-request');
+    $('btn-code').onclick = () => (show('panel-code'), $('code').focus());
+
+    $('send').onclick = async () => {
+      try {
+        const r = await window.guardian.request(Number($('minutes').value), $('reason').value);
+        result('Solicitud enviada. Espera la respuesta…', true);
+        const poll = setInterval(async () => {
+          const s = await window.guardian.requestStatus(r.id).catch(() => null);
+          if (!s || s.status === 'pending') return;
+          clearInterval(poll);
+          if (s.status === 'approved') result(`¡Aprobada! Tienes ${s.minutesGranted} min.`, true);
+          else result(s.status === 'denied' ? 'Tu solicitud fue rechazada.' : 'La solicitud venció.', false);
+        }, 4000);
+      } catch (e) {
+        result(e.message.replace(/^Error invoking remote method '[^']+': Error: /, ''), false);
+      }
+    };
+
+    $('check').onclick = async () => {
+      const r = await window.guardian.code($('code').value);
+      if (r.ok) result(r.minutes ? `Código aceptado: ${r.minutes} min libres.` : 'Acceso de administrador por 10 min.', true);
+      else result(`Código incorrecto (${r.attempts} intentos). Se avisará al administrador.`, false);
+      $('code').value = '';
+    };
+
+    window.guardian.onDecision((d) => {
+      state = d;
+      render();
+    });
+    render();
+  </script>
+</body>
+</html>

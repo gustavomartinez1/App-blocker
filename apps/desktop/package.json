@@ -1,0 +1,24 @@
+{
+  "name": "@guardian/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Agente de escritorio (Windows, macOS, Linux): servicio privilegiado que aplica los bloqueos + app de sesión con pantalla de bloqueo.",
+  "main": "dist/session/main.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json && node scripts/copy-ui.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "service": "node dist/service/main.js",
+    "session": "electron dist/session/main.js"
+  },
+  "dependencies": {
+    "@guardian/core": "0.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.0",
+    "electron": "^34.1.1",
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.5"
+  }
+}
