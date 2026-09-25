@@ -1,0 +1,23 @@
+{
+  "name": "app-blocker",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Guardián: bloqueo de apps y sitios web, multiplataforma (Android, iOS, Windows, macOS, Linux y navegadores), administrado de forma remota.",
+  "workspaces": [
+    "packages/core",
+    "apps/server",
+    "apps/web",
+    "apps/desktop",
+    "apps/extension"
+  ],
+  "scripts": {
+    "build": "npm run build -w @guardian/core && npm run build -w @guardian/server && npm run build -w @guardian/web && npm run build -w @guardian/desktop && npm run build -w @guardian/extension",
+    "test": "npm run test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "dev:server": "npm run dev -w @guardian/server",
+    "dev:web": "npm run dev -w @guardian/web"
+  },
+  "engines": {
+    "node": ">=22.5"
+  }
+}
