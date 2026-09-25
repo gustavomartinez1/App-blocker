@@ -372,6 +372,39 @@ export async function adminRoutes(app: FastifyInstance, ctx: AppContext): Promis
     return { ok: true };
   });
 
+  // ------------------------------------------------------------ canales de aviso
+
+  app.get('/api/notifications', async (req) => {
+    const { accountId } = ctx.requireAdmin(req);
+    const acc = db.get<{ telegram_chat_id: string | null; email_alerts: string; email: string }>(
+      'SELECT telegram_chat_id, email_alerts, email FROM accounts WHERE id = ?',
+      accountId,
+    )!;
+    return {
+      telegram: { available: !!ctx.telegram, linked: !!acc.telegram_chat_id, bot: ctx.telegram?.username ?? null },
+      email: { available: !!ctx.email, address: acc.email, level: acc.email_alerts },
+    };
+  });
+
+  app.post('/api/notifications/telegram/link', async (req) => {
+    const { accountId } = ctx.requireAdmin(req);
+    if (!ctx.telegram) throw new HttpError(503, 'El servidor no tiene configurado un bot de Telegram');
+    return ctx.telegram.createLink(accountId);
+  });
+
+  app.delete('/api/notifications/telegram', async (req) => {
+    const { accountId } = ctx.requireAdmin(req);
+    db.run('UPDATE accounts SET telegram_chat_id = NULL WHERE id = ?', accountId);
+    return { ok: true };
+  });
+
+  app.put('/api/notifications/email', async (req) => {
+    const { accountId } = ctx.requireAdmin(req);
+    const { level } = z.object({ level: z.enum(['all', 'critical', 'off']) }).parse(req.body);
+    db.run('UPDATE accounts SET email_alerts = ? WHERE id = ?', level, accountId);
+    return { ok: true };
+  });
+
   app.post('/api/push/test', async (req) => {
     const { familyId } = ctx.requireAdmin(req);
     await notifier.alertFamily(familyId, { title: 'Guardián', body: 'Las notificaciones funcionan ✅', url: '/#/' });

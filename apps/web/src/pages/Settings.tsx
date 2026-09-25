@@ -90,6 +90,8 @@ export function SettingsPage() {
         </div>
       </div>
 
+      <ChannelsCard />
+
       <div className="card stack">
         <h2>Administradores de “{me.data?.family.name}”</h2>
         <p className="muted" style={{ margin: 0 }}>
@@ -133,6 +135,71 @@ export function SettingsPage() {
         <button className="danger" onClick={() => setToken(null)}>
           Cerrar sesión
         </button>
+      </div>
+    </div>
+  );
+}
+
+interface Channels {
+  telegram: { available: boolean; linked: boolean; bot: string | null };
+  email: { available: boolean; address: string; level: 'all' | 'critical' | 'off' };
+}
+
+/** Avisos por Telegram (con botones para aprobar) y por correo. */
+function ChannelsCard() {
+  const channels = useData<Channels>('/api/notifications');
+  const c = channels.data;
+  if (!c) return null;
+
+  const connectTelegram = async () => {
+    const r = await attempt(() => api<{ url: string | null; code: string }>('/api/notifications/telegram/link', 'POST'));
+    if (!r) return;
+    if (r.url) window.open(r.url, '_blank');
+    // Al volver, recarga el estado.
+    setTimeout(channels.reload, 8000);
+  };
+
+  return (
+    <div className="card stack">
+      <h2>Otros avisos</h2>
+      <div className="toggle-row" style={{ alignItems: 'center' }}>
+        <span style={{ fontSize: '1.6rem' }}>✈️</span>
+        <div style={{ flex: 1 }}>
+          <strong>Telegram</strong>
+          <div className="muted small">Te llegan las solicitudes con botones para aprobar o rechazar desde el chat, y las alertas al instante. Gratis.</div>
+        </div>
+        {!c.telegram.available ? (
+          <span className="badge">No configurado en el servidor</span>
+        ) : c.telegram.linked ? (
+          <>
+            <span className="badge green">Conectado</span>
+            <button className="small danger" onClick={() => attempt(() => api('/api/notifications/telegram', 'DELETE'), 'Telegram desconectado').then(channels.reload)}>
+              Desconectar
+            </button>
+          </>
+        ) : (
+          <button className="primary" onClick={connectTelegram}>
+            Conectar Telegram
+          </button>
+        )}
+      </div>
+      <div className="toggle-row" style={{ alignItems: 'center' }}>
+        <span style={{ fontSize: '1.6rem' }}>✉️</span>
+        <div style={{ flex: 1 }}>
+          <strong>Correo</strong>
+          <div className="muted small">{c.email.available ? `A ${c.email.address}` : 'El servidor no tiene configurado el envío de correos.'}</div>
+        </div>
+        {c.email.available && (
+          <select
+            value={c.email.level}
+            style={{ width: 'auto' }}
+            onChange={(e) => attempt(() => api('/api/notifications/email', 'PUT', { level: e.target.value }), 'Guardado').then(channels.reload)}
+          >
+            <option value="critical">Sólo alertas críticas</option>
+            <option value="all">Alertas y avisos</option>
+            <option value="off">Nada</option>
+          </select>
+        )}
       </div>
     </div>
   );

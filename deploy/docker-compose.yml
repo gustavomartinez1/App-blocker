@@ -1,0 +1,40 @@
+# Despliegue en un VPS: Guardián + Caddy (HTTPS automático con Let's Encrypt).
+# Uso: copia .env.example a .env, rellena, y ejecuta `docker compose up -d`.
+services:
+  guardian:
+    build: ..
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - guardian-data:/data
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+    depends_on:
+      - guardian
+
+  # Copia de seguridad diaria de la base de datos (se guardan 14 días).
+  backup:
+    image: alpine:3
+    restart: unless-stopped
+    volumes:
+      - guardian-data:/data:ro
+      - ./backups:/backups
+    command: >
+      sh -c 'apk add --no-cache sqlite >/dev/null && while true; do
+        sqlite3 /data/guardian.sqlite ".backup /backups/guardian-$$(date +%F).sqlite";
+        find /backups -name "guardian-*.sqlite" -mtime +14 -delete;
+        sleep 86400; done'
+
+volumes:
+  guardian-data:
+  caddy-data:

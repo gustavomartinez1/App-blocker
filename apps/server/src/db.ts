@@ -123,6 +123,15 @@ const MIGRATIONS: string[] = [
     value TEXT NOT NULL
   );
   `,
+  `
+  ALTER TABLE accounts ADD COLUMN telegram_chat_id TEXT;
+  ALTER TABLE accounts ADD COLUMN email_alerts TEXT NOT NULL DEFAULT 'critical' CHECK (email_alerts IN ('all', 'critical', 'off'));
+  CREATE TABLE telegram_links (
+    code TEXT PRIMARY KEY,
+    account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+    expires_at INTEGER NOT NULL
+  );
+  `,
 ];
 
 export type Row = Record<string, SQLInputValue>;

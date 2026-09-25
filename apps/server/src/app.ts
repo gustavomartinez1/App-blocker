@@ -7,10 +7,12 @@ import { ZodError } from 'zod';
 import type { Config } from './config.js';
 import { Db } from './db.js';
 import { Hub } from './hub.js';
+import { EmailChannel, type MailTransport } from './email.js';
 import { Notifier, type PushSender } from './notify.js';
 import { adminRoutes } from './routes/admin.js';
 import { deviceRoutes } from './routes/device.js';
 import { hashDeviceToken, verifyAdminToken } from './security.js';
+import { TelegramBot } from './telegram.js';
 import { HttpError, Services, type DeviceRow } from './services.js';
 
 export interface AppContext {
@@ -19,6 +21,8 @@ export interface AppContext {
   hub: Hub;
   notifier: Notifier;
   services: Services;
+  telegram?: TelegramBot;
+  email?: EmailChannel;
   requireAdmin(req: FastifyRequest): { accountId: string; familyId: string };
   requireDevice(req: FastifyRequest): DeviceRow;
 }
@@ -26,6 +30,10 @@ export interface AppContext {
 export interface BuildOptions {
   pushSender?: PushSender;
   logger?: boolean;
+  /** Para pruebas: fetch falso hacia la API de Telegram. */
+  telegramFetch?: typeof fetch;
+  /** Para pruebas: transporte de correo falso. */
+  mailTransport?: MailTransport;
 }
 
 export async function buildApp(config: Config, opts: BuildOptions = {}): Promise<{ app: FastifyInstance; ctx: AppContext }> {
@@ -33,6 +41,34 @@ export async function buildApp(config: Config, opts: BuildOptions = {}): Promise
   const hub = new Hub();
   const notifier = new Notifier(db, config.vapidSubject, opts.pushSender);
   const services = new Services(db, hub, notifier);
+
+  let telegram: TelegramBot | undefined;
+  if (config.telegramBotToken) {
+    telegram = new TelegramBot(
+      config.telegramBotToken,
+      db,
+      {
+        async decide(accountId, requestId, approve, minutes) {
+          const acc = db.get<{ family_id: string }>('SELECT family_id FROM accounts WHERE id = ?', accountId);
+          if (!acc) throw new HttpError(403, 'Cuenta no encontrada');
+          const r = services.request(requestId);
+          const p = services.profile(acc.family_id, r.profile_id);
+          if (r.status !== 'pending') return 'Esta solicitud ya fue respondida.';
+          const res = services.decideRequest(p, r, accountId, approve, minutes);
+          if (!approve) return '❌ Rechazada';
+          return res.applied ? `✅ Aprobada${res.request.minutesGranted ? `: ${res.request.minutesGranted} min` : ''}` : '⏳ Aprobada; se aplicará al terminar la espera (autocontrol)';
+        },
+      },
+      config.publicUrl,
+      opts.telegramFetch,
+    );
+    notifier.addChannel(telegram);
+  }
+  let email: EmailChannel | undefined;
+  if (config.smtpUrl || opts.mailTransport) {
+    email = opts.mailTransport ? new EmailChannel(config.smtpFrom, opts.mailTransport, config.publicUrl) : EmailChannel.fromUrl(config.smtpUrl!, config.smtpFrom, config.publicUrl);
+    notifier.addChannel(email);
+  }
 
   const bearer = (req: FastifyRequest): string | undefined => {
     const h = req.headers.authorization;
@@ -47,6 +83,8 @@ export async function buildApp(config: Config, opts: BuildOptions = {}): Promise
     hub,
     notifier,
     services,
+    telegram,
+    email,
     requireAdmin(req) {
       const token = bearer(req);
       const claims = token ? verifyAdminToken(config.tokenSecret, token) : null;
@@ -111,6 +149,9 @@ export async function buildApp(config: Config, opts: BuildOptions = {}): Promise
     });
   }
 
-  app.addHook('onClose', async () => db.close());
+  app.addHook('onClose', async () => {
+    telegram?.stop();
+    db.close();
+  });
   return { app, ctx };
 }

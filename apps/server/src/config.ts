@@ -16,6 +16,13 @@ export interface Config {
   vapidSubject: string;
   /** Intervalo de tareas periódicas (dispositivos sin conexión, cambios diferidos). */
   jobIntervalMs: number;
+  /** URL pública del panel (para enlaces en correos y Telegram). */
+  publicUrl?: string;
+  /** Token del bot de Telegram (de @BotFather). Sin él no hay avisos por Telegram. */
+  telegramBotToken?: string;
+  /** SMTP para avisos por correo, p. ej. smtps://usuario:clave@smtp.proveedor.com:465 */
+  smtpUrl?: string;
+  smtpFrom: string;
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
@@ -32,5 +39,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     webDist: env.GUARDIAN_WEB_DIST ?? resolve('../web/dist'),
     vapidSubject: env.GUARDIAN_VAPID_SUBJECT ?? 'mailto:admin@example.com',
     jobIntervalMs: Number(env.GUARDIAN_JOB_INTERVAL_MS ?? 60_000),
+    publicUrl: env.GUARDIAN_PUBLIC_URL?.replace(/\/+$/, ''),
+    telegramBotToken: env.GUARDIAN_TELEGRAM_BOT_TOKEN || undefined,
+    smtpUrl: env.GUARDIAN_SMTP_URL || undefined,
+    smtpFrom: env.GUARDIAN_SMTP_FROM ?? 'Guardián <alertas@example.com>',
   };
 }

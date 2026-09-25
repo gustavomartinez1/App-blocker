@@ -21,9 +21,14 @@ Monorepo con todo lo necesario para que un administrador (padre/madre, tutor, o 
 - **Acciones rápidas del admin:** bloquear ya, liberar el dispositivo, dar tiempo extra.
 - **Solicitudes:** desde la pantalla de bloqueo se pide desbloqueo o más tiempo; al admin le llega una notificación y responde desde el panel.
 - **Códigos sin internet:** códigos de 6 dígitos que caducan en 10 min y sirven una sola vez.
-- **Alertas:** códigos incorrectos, cambios de hora, dispositivos que dejan de reportar, etc.
+- **Alertas:** códigos incorrectos, cambios de hora, dispositivos que dejan de reportar, etc., por notificación push, **Telegram** (con botones para aprobar) o correo.
 - **Modo autocontrol:** los cambios que relajan las reglas esperan un tiempo configurable.
 - **Siempre permitido:** llamadas, SMS y emergencias nunca se bloquean.
+
+## Documentación
+
+- [`docs/HOSTING.md`](docs/HOSTING.md): dónde alojarlo, costos y despliegue con Docker.
+- [`docs/MOVILES.md`](docs/MOVILES.md): opciones para iOS y Android.
 
 ## Desarrollo
 

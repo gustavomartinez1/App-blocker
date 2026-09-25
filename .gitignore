@@ -21,3 +21,5 @@ apps/android/**/build/
 apps/ios/*.xcodeproj/
 apps/ios/DerivedData/
 xcuserdata/
+deploy/.env
+deploy/backups/

@@ -562,6 +562,7 @@ export class Services {
       url: '/#/solicitudes',
       tag: `req-${row.id}`,
       severity: 'warning',
+      request: { id: row.id, kind: row.kind, minutes: row.minutes_requested },
     });
     return row;
   }
