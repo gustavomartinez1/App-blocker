@@ -1,4 +1,5 @@
 import {
+  catalogFor,
   emptyUsage,
   localTime,
   policyInputSchema,
@@ -311,6 +312,8 @@ export class Services {
       othersUsage: others,
       unlockSecret: deviceUnlockSecret(p.unlock_secret, d.id),
       serverTime: new Date().toISOString(),
+      /** Catálogo de servicios para los agentes nativos (Android/iOS), que no incluyen el motor en TypeScript. */
+      catalog: catalogFor(d.platform as Platform),
     };
   }
 

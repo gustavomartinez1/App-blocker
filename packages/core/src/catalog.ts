@@ -215,3 +215,20 @@ export const FAMILY_DNS = {
   cleanbrowsingFamily: { ipv4: ['185.228.168.168', '185.228.169.168'], doh: 'https://doh.cleanbrowsing.org/doh/family-filter/' },
   cloudflareFamily: { ipv4: ['1.1.1.3', '1.0.0.3'], doh: 'https://family.cloudflare-dns.com/dns-query' },
 };
+
+/** Catálogo reducido para una plataforma: lo recibe cada agente junto con la política. */
+export interface PlatformCatalog {
+  services: { id: string; name: string; category: CategoryId; apps: string[]; domains: string[] }[];
+  categories: Record<string, { domains: string[]; keywords: string[] }>;
+  essentialApps: string[];
+}
+
+export function catalogFor(platform: Platform): PlatformCatalog {
+  const categories: PlatformCatalog['categories'] = {};
+  for (const c of Object.values(CATEGORIES)) categories[c.id] = { domains: c.domains ?? [], keywords: c.keywords ?? [] };
+  return {
+    services: SERVICES.map((s) => ({ id: s.id, name: s.name, category: s.category, apps: s.apps[platform] ?? [], domains: s.domains })),
+    categories,
+    essentialApps: ESSENTIAL_APPS[platform] ?? [],
+  };
+}
