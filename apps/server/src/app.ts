@@ -104,7 +104,7 @@ export async function buildApp(config: Config, opts: BuildOptions = {}): Promise
   await app.register(async (scope) => deviceRoutes(scope, ctx));
 
   if (config.webDist && existsSync(config.webDist)) {
-    await app.register(fastifyStatic, { root: config.webDist, wildcard: false });
+    await app.register(fastifyStatic, { root: config.webDist });
     app.setNotFoundHandler((req, reply) => {
       if (req.url.startsWith('/api/')) return reply.status(404).send({ error: 'No encontrado' });
       return reply.sendFile('index.html');
