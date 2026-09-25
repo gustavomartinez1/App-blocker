@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="popup">
+  <strong>🛡️ Guardián</strong>
+  <div id="pair" style="display:none">
+    <p>Vincula este navegador con el código del panel (perfil → Dispositivos).</p>
+    <form id="pair-form">
+      <label>Servidor<input id="server" value="https://" required /></label>
+      <label>Código<input id="code" class="code" placeholder="XXXX-XXXX" required /></label>
+      <label>Nombre<input id="name" placeholder="Chrome de la laptop" /></label>
+      <div class="row"><button class="primary">Vincular</button></div>
+      <div id="pair-result" class="msg err"></div>
+    </form>
+  </div>
+  <div id="status" style="display:none">
+    <p id="who"></p>
+    <ul id="rules"></ul>
+  </div>
+  <script type="module" src="popup.js"></script>
+</body>
+</html>

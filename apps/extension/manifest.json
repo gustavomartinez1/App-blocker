@@ -1,0 +1,14 @@
+{
+  "manifest_version": 3,
+  "name": "Guardián",
+  "short_name": "Guardián",
+  "version": "0.1.0",
+  "description": "Bloquea sitios, secciones y búsquedas según las reglas de tu administrador. Cuenta el tiempo y permite pedir desbloqueos.",
+  "icons": { "32": "icons/icon32.png", "128": "icons/icon128.png" },
+  "action": { "default_popup": "popup.html", "default_icon": { "32": "icons/icon32.png" } },
+  "background": { "service_worker": "background.js", "type": "module" },
+  "permissions": ["storage", "tabs", "webNavigation", "alarms", "idle", "declarativeNetRequest", "management"],
+  "host_permissions": ["<all_urls>"],
+  "incognito": "spanning",
+  "web_accessible_resources": [{ "resources": ["blocked.html"], "matches": ["<all_urls>"] }]
+}

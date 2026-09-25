@@ -1,0 +1,19 @@
+{
+  "name": "@guardian/extension",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Extensión de navegador (Chrome, Edge, Brave, Firefox): bloqueo de sitios y secciones, tiempo de uso, SafeSearch y solicitudes.",
+  "scripts": {
+    "build": "tsc -p tsconfig.json --noEmit && node build.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@guardian/core": "0.1.0"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.304",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.7.3"
+  }
+}

@@ -72,8 +72,15 @@ export function subjectKey(subject: Subject): string {
   return subject.type === 'app' ? `app:${subject.id}` : `web:${normalizeHost(subject.url)}`;
 }
 
+function serviceForHost(host: string) {
+  return SERVICES.find((s) => s.domains.some((d) => host === d || host.endsWith('.' + d)));
+}
+
 export function subjectLabel(subject: Subject): string {
-  if (subject.type === 'web') return normalizeHost(subject.url);
+  if (subject.type === 'web') {
+    const host = normalizeHost(subject.url);
+    return serviceForHost(host)?.name ?? host;
+  }
   const svc = SERVICES.find((s) => s.apps[subject.platform]?.some((id) => id.toLowerCase() === subject.id.toLowerCase()));
   return svc?.name ?? subject.label ?? subject.id;
 }
@@ -82,7 +89,7 @@ export function subjectLabel(subject: Subject): string {
 export function subjectTarget(subject: Subject): Target {
   if (subject.type === 'web') {
     const host = normalizeHost(subject.url);
-    const svc = SERVICES.find((s) => s.domains.some((d) => host === d || host.endsWith('.' + d)));
+    const svc = serviceForHost(host);
     return svc ? { kind: 'service', id: svc.id } : { kind: 'domain', domain: host };
   }
   const svc = SERVICES.find((s) => s.apps[subject.platform]?.some((id) => id.toLowerCase() === subject.id.toLowerCase()));

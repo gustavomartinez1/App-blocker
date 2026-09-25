@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "DOM", "WebWorker"],
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "types": ["chrome"],
+    "paths": { "@guardian/core": ["../../packages/core/src/index.ts"] }
+  },
+  "include": ["src"]
+}

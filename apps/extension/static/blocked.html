@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="style.css" />
+  <title>Bloqueado · Guardián</title>
+</head>
+<body>
+  <div class="page">
+    <div class="card">
+      <div class="big">🛡️</div>
+      <h1><span id="site"></span> está bloqueado</h1>
+      <p id="message"></p>
+      <div class="until" id="until"></div>
+      <div class="row" id="actions">
+        <button class="primary" id="btn-request">Pedir desbloqueo</button>
+        <button id="btn-code">Tengo un código</button>
+      </div>
+      <div class="panel" id="panel-request">
+        <label>¿Cuánto tiempo?
+          <select id="minutes"><option>15</option><option selected>30</option><option>60</option><option>120</option></select>
+        </label>
+        <label>¿Para qué? (opcional)<textarea id="reason" rows="2" maxlength="300" placeholder="Lo necesito para la tarea…"></textarea></label>
+        <div class="row"><button class="primary" id="send">Enviar solicitud</button></div>
+      </div>
+      <div class="panel" id="panel-code">
+        <label>Código de 6 dígitos<input id="code" class="code" inputmode="numeric" maxlength="7" autocomplete="off" /></label>
+        <div class="row"><button class="primary" id="check">Desbloquear</button></div>
+      </div>
+      <div id="result" class="msg"></div>
+    </div>
+  </div>
+  <script type="module" src="blocked.js"></script>
+</body>
+</html>

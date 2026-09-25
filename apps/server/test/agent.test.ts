@@ -62,7 +62,7 @@ it('flujo completo de un agente: vincular, bloquear, pedir desbloqueo, códigos'
   await agent.use({ type: 'web', url: 'https://www.youtube.com/watch?v=1' }, 5 * 60_000);
   await agent.flush();
   const usage = await call('GET', `/api/profiles/${profileId}/usage`, token);
-  expect(usage.items.find((i: { label: string }) => i.label === 'youtube.com').usedMs).toBe(5 * 60_000);
+  expect(usage.items.find((i: { label: string }) => i.label === 'YouTube').usedMs).toBe(5 * 60_000);
   expect(usage.items.find((i: { label: string }) => i.label === 'Roblox').blockedAttempts).toBe(1);
 
   // 3 códigos incorrectos → alerta al admin.
