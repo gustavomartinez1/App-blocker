@@ -1,4 +1,4 @@
-import { CATEGORIES, PLATFORMS, SERVICES, describeTarget, type CategoryId, type Platform, type Target } from '@guardian/core';
+import { CATEGORIES, PLATFORMS, SERVICES, describeTarget, isValidIpOrCidr, type CategoryId, type Platform, type Target } from '@guardian/core';
 import { useMemo, useState } from 'react';
 import { PLATFORM_LABELS } from '../format';
 
@@ -103,7 +103,8 @@ export function TargetPicker({ value, onChange, allowAll = true }: { value: Targ
 }
 
 function CustomTarget({ onAdd }: { onAdd: (t: Target) => void }) {
-  const [kind, setKind] = useState<'domain' | 'url' | 'keyword' | 'app'>('domain');
+  const [kind, setKind] = useState<'domain' | 'url' | 'keyword' | 'ip' | 'app'>('domain');
+  const [error, setError] = useState('');
   const [text, setText] = useState('');
   const [platform, setPlatform] = useState<Platform | ''>('android');
   const [label, setLabel] = useState('');
@@ -114,6 +115,11 @@ function CustomTarget({ onAdd }: { onAdd: (t: Target) => void }) {
     if (kind === 'domain') onAdd({ kind, domain: v.toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '') });
     if (kind === 'url') onAdd({ kind, prefix: v });
     if (kind === 'keyword') onAdd({ kind, keyword: v.toLowerCase() });
+    if (kind === 'ip') {
+      if (!isValidIpOrCidr(v)) return setError('IP o rango inválido. Ejemplos: 203.0.113.7 · 10.0.0.0/8 · 2001:db8::/32');
+      onAdd({ kind, ip: v });
+    }
+    setError('');
     if (kind === 'app') onAdd({ kind, id: v, platform: platform || undefined, label: label.trim() || undefined });
     setText('');
     setLabel('');
@@ -123,6 +129,7 @@ function CustomTarget({ onAdd }: { onAdd: (t: Target) => void }) {
     domain: 'ejemplo.com (incluye todos sus subdominios)',
     url: 'youtube.com/shorts (bloquea sólo esa sección)',
     keyword: 'casino (bloquea URLs y búsquedas que la contengan)',
+    ip: '203.0.113.7 o un rango: 10.0.0.0/8',
     app: 'com.ejemplo.app · Discord.exe · com.hnc.Discord',
   };
 
@@ -133,6 +140,7 @@ function CustomTarget({ onAdd }: { onAdd: (t: Target) => void }) {
           <option value="domain">Sitio web (dominio)</option>
           <option value="url">Sección de un sitio (URL)</option>
           <option value="keyword">Palabra clave</option>
+          <option value="ip">Dirección IP o rango</option>
           <option value="app">App por identificador</option>
         </select>
         {kind === 'app' && (
@@ -153,6 +161,7 @@ function CustomTarget({ onAdd }: { onAdd: (t: Target) => void }) {
           Agregar
         </button>
       </div>
+      {error && <div className="error">{error}</div>}
       {kind === 'app' && (
         <p className="muted small" style={{ margin: 0 }}>
           En iPhone las apps se eligen desde el propio iPhone (restricción de Apple): abre Guardián en el iPhone → “Elegir apps”.

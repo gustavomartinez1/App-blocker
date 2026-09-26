@@ -6,3 +6,4 @@ export * from './engine.js';
 export * from './codes.js';
 export * from './describe.js';
 export * from './agent.js';
+export * from './ip.js';

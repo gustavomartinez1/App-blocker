@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { isValidIpOrCidr } from './ip.js';
 
 /**
  * Esquemas de la política de bloqueo. Son la única fuente de verdad: el
@@ -58,6 +59,8 @@ export const targetSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('url'), prefix: z.string().min(1) }),
   /** Palabra clave en la URL o búsqueda. */
   z.object({ kind: z.literal('keyword'), keyword: z.string().min(2) }),
+  /** Dirección IP o rango CIDR (IPv4/IPv6), p. ej. "203.0.113.7" o "10.0.0.0/8". */
+  z.object({ kind: z.literal('ip'), ip: z.string().refine(isValidIpOrCidr, 'IP o rango CIDR inválido') }),
   /** Categoría completa del catálogo. */
   z.object({ kind: z.literal('category'), category: categorySchema }),
   /**

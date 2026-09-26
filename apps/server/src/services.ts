@@ -12,6 +12,7 @@ import {
   type Target,
   type UsageState,
 } from '@guardian/core';
+import type { DeviceWaker } from './apns.js';
 import type { Db } from './db.js';
 import type { Hub } from './hub.js';
 import type { Notifier } from './notify.js';
@@ -95,6 +96,7 @@ export const DEVICE_EVENT_TYPES = [
   'agent_stopped',
   'agent_started',
   'unlock_attempts',
+  'ios_selection_changed',
 ] as const;
 export type DeviceEventType = (typeof DEVICE_EVENT_TYPES)[number];
 type EventType = DeviceEventType | 'device_offline' | 'device_online' | 'device_paired' | 'device_removed';
@@ -117,6 +119,10 @@ const EVENT_INFO: Record<EventType, { severity: EventRow['severity']; message: (
   agent_stopped: { severity: 'critical', message: () => 'El agente de bloqueo se detuvo' },
   agent_started: { severity: 'info', message: () => 'El agente de bloqueo se inició' },
   unlock_attempts: { severity: 'warning', message: (d) => `Intentó abrir ${str(d.label, 'algo bloqueado')} ${str(d.count, 'varias')} veces estando bloqueado` },
+  ios_selection_changed: {
+    severity: 'info',
+    message: (d) => `Se cambiaron las apps elegidas en el iPhone para “${str(d.rule)}”: ${str(d.apps, '0')} apps, ${str(d.categories, '0')} categorías, ${str(d.webDomains, '0')} sitios`,
+  },
   device_offline: { severity: 'warning', message: (d) => `El dispositivo lleva ${str(d.minutes)} min sin conectarse (¿apagado, sin internet o desinstalado?)` },
   device_online: { severity: 'info', message: () => 'El dispositivo volvió a conectarse' },
   device_paired: { severity: 'info', message: (d) => `Nuevo dispositivo vinculado: ${str(d.name)}` },
@@ -132,11 +138,32 @@ export interface UsageReport {
 }
 
 export class Services {
+  private waker: DeviceWaker | null = null;
+
   constructor(
     private readonly db: Db,
     private readonly hub: Hub,
     private readonly notifier: Notifier,
   ) {}
+
+  setDeviceWaker(waker: DeviceWaker): void {
+    this.waker = waker;
+  }
+
+  /** Notificación silenciosa a los agentes móviles para que sincronicen ya. */
+  wakeDevices(deviceIds: string[]): void {
+    if (!this.waker || !deviceIds.length) return;
+    const rows = deviceIds
+      .map((id) => this.db.get<{ id: string; push_token: string | null }>('SELECT id, push_token FROM devices WHERE id = ?', id))
+      .filter((r): r is { id: string; push_token: string } => !!r?.push_token);
+    if (!rows.length) return;
+    void this.waker
+      .wake(rows.map((r) => r.push_token))
+      .then(({ invalid }) => {
+        for (const t of invalid) this.db.run('UPDATE devices SET push_token = NULL WHERE push_token = ?', t);
+      })
+      .catch(() => undefined);
+  }
 
   // ---------------------------------------------------------------- perfiles
 
@@ -188,8 +215,10 @@ export class Services {
     this.db.run('UPDATE profiles SET policy_version = policy_version + 1 WHERE id = ?', profileId);
     const p = this.profileById(profileId);
     const msg = { type: 'policy', profileId, version: p.policy_version } as const;
-    for (const d of this.db.all<{ id: string }>('SELECT id FROM devices WHERE profile_id = ?', profileId)) this.hub.toDevice(d.id, msg);
+    const devices = this.db.all<{ id: string }>('SELECT id FROM devices WHERE profile_id = ?', profileId);
+    for (const d of devices) this.hub.toDevice(d.id, msg);
     this.hub.toFamily(p.family_id, msg);
+    this.wakeDevices(devices.map((d) => d.id));
   }
 
   /**
@@ -317,13 +346,14 @@ export class Services {
     };
   }
 
-  touchDevice(d: DeviceRow, status?: Record<string, unknown>, agentVersion?: string): void {
+  touchDevice(d: DeviceRow, status?: Record<string, unknown>, agentVersion?: string, pushToken?: string): void {
     const wasOffline = d.offline_alerted === 1;
     this.db.run(
-      'UPDATE devices SET last_seen = ?, offline_alerted = 0, status_json = COALESCE(?, status_json), agent_version = COALESCE(?, agent_version) WHERE id = ?',
+      'UPDATE devices SET last_seen = ?, offline_alerted = 0, status_json = COALESCE(?, status_json), agent_version = COALESCE(?, agent_version), push_token = COALESCE(?, push_token) WHERE id = ?',
       Date.now(),
       status ? JSON.stringify(status) : null,
       agentVersion ?? null,
+      pushToken ?? null,
       d.id,
     );
     if (wasOffline) this.recordEvent(d.profile_id, d.id, 'device_online', {});
@@ -626,7 +656,10 @@ export class Services {
     );
     const pub = this.publicRequest(this.request(r.id));
     this.hub.toFamily(p.family_id, { type: 'request', request: pub });
-    if (r.device_id) this.hub.toDevice(r.device_id, { type: 'request', request: pub });
+    if (r.device_id) {
+      this.hub.toDevice(r.device_id, { type: 'request', request: pub });
+      this.wakeDevices([r.device_id]);
+    }
     return { request: pub, ...result };
   }
 

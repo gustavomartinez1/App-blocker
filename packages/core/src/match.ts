@@ -1,4 +1,5 @@
 import { CATEGORIES, ESSENTIAL_APPS, getService, servicesInCategory } from './catalog.js';
+import { ipMatches } from './ip.js';
 import type { EvalContext, Platform, Rule, Subject, Target } from './schema.js';
 
 /** Plataformas donde los identificadores de app no distinguen mayúsculas. */
@@ -13,7 +14,10 @@ export function normalizeHost(input: string): string {
   let s = input.trim().toLowerCase();
   s = s.replace(/^[a-z][a-z0-9+.-]*:\/\//, '');
   s = s.split(/[/?#]/)[0] ?? '';
-  s = s.replace(/^[^@]*@/, '').replace(/:\d+$/, '').replace(/\.$/, '');
+  s = s.replace(/^[^@]*@/, '');
+  if (s.startsWith('[')) return s.slice(1, s.indexOf(']') === -1 ? undefined : s.indexOf(']'));
+  if ((s.match(/:/g) ?? []).length > 1) return s; // IPv6 sin corchetes
+  s = s.replace(/:\d+$/, '').replace(/\.$/, '');
   s = s.replace(/^\*\./, '').replace(/^www\./, '');
   return s;
 }
@@ -87,6 +91,8 @@ export function matchesTarget(target: Target, subject: Subject): boolean {
       return subject.type === 'web' && urlPrefixMatches(subject.url, target.prefix);
     case 'keyword':
       return subject.type === 'web' && keywordMatches(subject.url, target.keyword);
+    case 'ip':
+      return subject.type === 'web' && ipMatches(normalizeHost(subject.url), target.ip);
     case 'category': {
       if (servicesInCategory(target.category).some((svc) => matchesTarget({ kind: 'service', id: svc.id }, subject))) {
         return true;
@@ -170,6 +176,8 @@ export function describeTarget(target: Target): string {
       return target.prefix;
     case 'keyword':
       return `“${target.keyword}”`;
+    case 'ip':
+      return `IP ${target.ip}`;
     case 'category':
       return `Categoría: ${CATEGORIES[target.category].name}`;
     case 'iosSelection':

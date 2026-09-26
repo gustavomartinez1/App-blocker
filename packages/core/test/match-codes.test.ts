@@ -66,3 +66,28 @@ describe('códigos sin conexión', () => {
     expect(code).toMatchInlineSnapshot(`"428045"`);
   });
 });
+
+describe('IP y rangos', () => {
+  it('IPv4, IPv6 y CIDR', async () => {
+    const { ipMatches, isValidIpOrCidr } = await import('../src/index.js');
+    expect(ipMatches('10.1.2.3', '10.0.0.0/8')).toBe(true);
+    expect(ipMatches('11.1.2.3', '10.0.0.0/8')).toBe(false);
+    expect(ipMatches('203.0.113.7', '203.0.113.7')).toBe(true);
+    expect(ipMatches('2001:db8::1', '2001:db8::/32')).toBe(true);
+    expect(ipMatches('2001:db9::1', '2001:db8::/32')).toBe(false);
+    expect(ipMatches('::ffff:1.2.3.4', '::ffff:1.2.3.0/120')).toBe(true);
+    expect(ipMatches('10.0.0.1', '2001:db8::/32')).toBe(false);
+    expect(isValidIpOrCidr('300.1.1.1')).toBe(false);
+    expect(isValidIpOrCidr('10.0.0.0/33')).toBe(false);
+    expect(isValidIpOrCidr('fe80::1/64')).toBe(true);
+  });
+
+  it('coincide con URLs que usan una IP directamente', () => {
+    const t = { kind: 'ip', ip: '198.51.100.0/24' } as const;
+    expect(matchesTarget(t, { type: 'web', url: 'http://198.51.100.20:8080/juego' })).toBe(true);
+    expect(matchesTarget(t, { type: 'web', url: 'https://example.com' })).toBe(false);
+    expect(matchesTarget({ kind: 'ip', ip: '2001:db8::/32' }, { type: 'web', url: 'http://[2001:db8::5]:80/' })).toBe(true);
+    expect(matchesTarget({ kind: 'ip', ip: '2001:db8::/32' }, { type: 'web', url: '2001:db8::5' })).toBe(true);
+    expect(normalizeHost('http://[2001:db8::5]:80/x')).toBe('2001:db8::5');
+  });
+});

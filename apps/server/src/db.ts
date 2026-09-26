@@ -132,6 +132,9 @@ const MIGRATIONS: string[] = [
     expires_at INTEGER NOT NULL
   );
   `,
+  `
+  ALTER TABLE devices ADD COLUMN push_token TEXT;
+  `,
 ];
 
 export type Row = Record<string, SQLInputValue>;

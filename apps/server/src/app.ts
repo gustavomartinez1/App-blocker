@@ -7,6 +7,7 @@ import { ZodError } from 'zod';
 import type { Config } from './config.js';
 import { Db } from './db.js';
 import { Hub } from './hub.js';
+import { ApnsWaker, type DeviceWaker } from './apns.js';
 import { EmailChannel, type MailTransport } from './email.js';
 import { Notifier, type PushSender } from './notify.js';
 import { adminRoutes } from './routes/admin.js';
@@ -34,6 +35,8 @@ export interface BuildOptions {
   telegramFetch?: typeof fetch;
   /** Para pruebas: transporte de correo falso. */
   mailTransport?: MailTransport;
+  /** Para pruebas: notificaciones silenciosas falsas a dispositivos. */
+  deviceWaker?: DeviceWaker;
 }
 
 export async function buildApp(config: Config, opts: BuildOptions = {}): Promise<{ app: FastifyInstance; ctx: AppContext }> {
@@ -41,6 +44,8 @@ export async function buildApp(config: Config, opts: BuildOptions = {}): Promise
   const hub = new Hub();
   const notifier = new Notifier(db, config.vapidSubject, opts.pushSender);
   const services = new Services(db, hub, notifier);
+  if (opts.deviceWaker) services.setDeviceWaker(opts.deviceWaker);
+  else if (config.apns) services.setDeviceWaker(new ApnsWaker(config.apns));
 
   let telegram: TelegramBot | undefined;
   if (config.telegramBotToken) {

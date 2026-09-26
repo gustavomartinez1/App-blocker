@@ -1,4 +1,5 @@
 import { randomBytes } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 export interface Config {
@@ -23,6 +24,8 @@ export interface Config {
   /** SMTP para avisos por correo, p. ej. smtps://usuario:clave@smtp.proveedor.com:465 */
   smtpUrl?: string;
   smtpFrom: string;
+  /** APNs (notificaciones silenciosas al iPhone). Todos los campos o ninguno. */
+  apns?: { keyId: string; teamId: string; key: string; bundleId: string; sandbox: boolean };
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
@@ -43,5 +46,15 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     telegramBotToken: env.GUARDIAN_TELEGRAM_BOT_TOKEN || undefined,
     smtpUrl: env.GUARDIAN_SMTP_URL || undefined,
     smtpFrom: env.GUARDIAN_SMTP_FROM ?? 'Guardián <alertas@example.com>',
+    apns:
+      env.GUARDIAN_APNS_KEY_ID && env.GUARDIAN_APNS_TEAM_ID && (env.GUARDIAN_APNS_KEY || env.GUARDIAN_APNS_KEY_FILE)
+        ? {
+            keyId: env.GUARDIAN_APNS_KEY_ID,
+            teamId: env.GUARDIAN_APNS_TEAM_ID,
+            key: env.GUARDIAN_APNS_KEY ?? readFileSync(env.GUARDIAN_APNS_KEY_FILE!, 'utf8'),
+            bundleId: env.GUARDIAN_APNS_BUNDLE_ID ?? 'com.guardian.blocker',
+            sandbox: env.GUARDIAN_APNS_SANDBOX === '1',
+          }
+        : undefined,
   };
 }

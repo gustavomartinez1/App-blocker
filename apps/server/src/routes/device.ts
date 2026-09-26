@@ -58,8 +58,10 @@ export async function deviceRoutes(app: FastifyInstance, ctx: AppContext): Promi
 
   app.post('/api/device/heartbeat', async (req) => {
     const d = ctx.requireDevice(req);
-    const body = z.object({ status: statusSchema.optional(), agentVersion: z.string().max(40).optional() }).parse(req.body ?? {});
-    services.touchDevice(d, body.status, body.agentVersion);
+    const body = z
+      .object({ status: statusSchema.optional(), agentVersion: z.string().max(40).optional(), pushToken: z.string().regex(/^[0-9a-fA-F]{32,200}$/).optional() })
+      .parse(req.body ?? {});
+    services.touchDevice(d, body.status, body.agentVersion, body.pushToken);
     return { ok: true, policyVersion: services.profileById(d.profile_id).policy_version };
   });
 
